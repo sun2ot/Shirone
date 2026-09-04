@@ -59,6 +59,9 @@ importers:
       '@iconify-json/material-symbols':
         specifier: ^1.2.88
         version: 1.2.88
+      '@iconify-json/thesvg-color':
+        specifier: ^1.2.6
+        version: 1.2.6
       '@iconify/svelte':
         specifier: ^5.2.2
         version: 5.2.2(svelte@5.56.8)
@@ -1318,6 +1321,9 @@ packages:
 
   '@iconify-json/simple-icons@1.2.93':
     resolution: {integrity: sha512-/XhANjfGYOuqvSR3TmUnkQkINvQ4GVjVuukvymRbxtVFBvIq/yiXJqCDycKcQPT401OYT9H2vIY6ihAlz1QIAw==}
+
+  '@iconify-json/thesvg-color@1.2.6':
+    resolution: {integrity: sha512-A8SCoUVPr6ce/LLb+f0Td64Rd1Z+bDpHByAs4u/9Lff8aAaFXyPRGKITzh5N1a6vyH4Iti4SVRtv/bw33tguhw==}
 
   '@iconify/svelte@5.2.2':
     resolution: {integrity: sha512-XMXxD3nzH7yB68C3K4sNwzrJ1TBscODR0ZqCeNf0KGuEMCTSuCo0jHNDZ0o0iRXTylO41NSz/DWam/4atLG1yw==}
@@ -8002,6 +8008,10 @@ snapshots:
       '@iconify/types': 2.0.0
 
   '@iconify-json/simple-icons@1.2.93':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/thesvg-color@1.2.6':
     dependencies:
       '@iconify/types': 2.0.0
 
