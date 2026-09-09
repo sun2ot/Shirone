@@ -8,6 +8,7 @@ import Markdown from "@components/content/Markdown.astro";
 import ImageWrapper from "@components/molecules/ImageWrapper.astro";
 import LastUpdatedNotice from "@components/molecules/LastUpdatedNotice.astro";
 import License from "@components/molecules/License.astro";
+import PaymentCode from "@components/molecules/PaymentCode.astro";
 import PostMetadata from "@components/molecules/PostMeta.astro";
 import ArticleDiscovery from "@components/organisms/ArticleDiscovery.astro";
 import ArticleShare from "@components/organisms/ArticleShare.svelte";
@@ -279,6 +280,8 @@ const jsonLd = {
                     <Content />
                 </Markdown>
             )}
+
+			<PaymentCode class="mb-6 onload-animation" />
 
 			{licenseConfig.enable && <License title={entry.data.title} slug={entry.id} pubDate={entry.data.published} class="mb-6 rounded-xl license-container onload-animation"></License>}
 

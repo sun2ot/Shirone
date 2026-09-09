@@ -53,6 +53,7 @@ export { LinkPresets, navBarConfig } from "./navBarConfig";
 export { permalinkConfig } from "./permalinkConfig";
 export { POST_CARD_MIN_WIDTH, postListConfig } from "./postListConfig";
 export { profileConfig } from "./profileConfig";
+export { paymentCodeConfig } from "./paymentCodeConfig";
 export { projectsConfig } from "./projectsConfig";
 export { sidebarConfig } from "./sidebarConfig";
 export {

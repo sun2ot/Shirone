@@ -80,6 +80,7 @@
 | `SidebarTOC` | 文章目录侧栏 widget（WidgetLayout 外壳 + 内嵌 `<table-of-contents>` 自定义元素及 `TocList` 原子） |
 | `FloatingActionButton` | 右下角浮动操作按钮包装器（响应式设备类受控 + 页面范围过滤属性） |
 | `FloatingTOCPanel` | 移动端/平板浮动大纲目录卡片分子（M3 Surface Container High 风格、平滑滚动定位与隐藏滚动条） |
+| `PaymentCode` | 文章正文后的收款码入口（coffee 图标 hover/focus 展开横向支付宝与微信支付二维码，纯 SSR/CSS 交互） |
 
 原子层通用件（`Button` / `Card` / `IconButton` / `Avatar` / `AccentBar` / `FAB` 等）见 `m3e-standard.md` §4。
 

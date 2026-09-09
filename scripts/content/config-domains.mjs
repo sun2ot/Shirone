@@ -44,6 +44,12 @@ export const CONFIG_DOMAINS = Object.freeze([
 		module: "@/types/config",
 	},
 	{
+		key: "paymentCode",
+		file: "payment-code",
+		type: "PaymentCodeConfig",
+		module: "@/types/paymentCodeConfig",
+	},
+	{
 		key: "license",
 		file: "license",
 		type: "LicenseConfig",

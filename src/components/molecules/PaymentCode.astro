@@ -1,0 +1,175 @@
+---
+import IconButton from "@components/atoms/action/IconButton.svelte";
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+import { resolveImageWithMetadata } from "@utils/image-metadata";
+import { Icon } from "astro-icon/components";
+import { paymentCodeConfig } from "@/config";
+
+interface Props {
+	class?: string;
+}
+
+const { class: className = "" } = Astro.props;
+const paymentMethods = [
+	{
+		modifier: "m3-payment-code__qr--alipay",
+		src: paymentCodeConfig.images.alipay,
+		alt: i18n(I18nKey.alipayPaymentCode),
+		label: i18n(I18nKey.alipayPaymentLabel),
+	},
+	{
+		modifier: "m3-payment-code__qr--wechat",
+		src: paymentCodeConfig.images.wechat,
+		alt: i18n(I18nKey.wechatPaymentCode),
+		label: i18n(I18nKey.wechatPaymentLabel),
+	},
+] as const;
+
+const paymentImages = paymentCodeConfig.enable
+	? await Promise.all(
+			paymentMethods.map(async (method) => ({
+				...method,
+				asset: await resolveImageWithMetadata(method.src),
+			})),
+		)
+	: [];
+const imageAspectRatio =
+	paymentImages.length > 0
+		? Math.max(...paymentImages.map(({ asset }) => asset.width / asset.height))
+		: undefined;
+---
+
+{paymentCodeConfig.enable && imageAspectRatio !== undefined && (
+	<div
+		class:list={["m3-payment-code", className]}
+		style={`--payment-code-image-aspect-ratio: ${imageAspectRatio}`}
+		data-payment-code
+	>
+	<div class="m3-payment-code__trigger">
+		<IconButton
+			variant="tonal"
+			size="small"
+			label={i18n(I18nKey.supportAuthor)}
+		>
+			<Icon name="material-symbols:coffee" aria-hidden="true" />
+		</IconButton>
+		<span class="m3-payment-code__trigger-label">
+			{i18n(I18nKey.supportAuthor)}
+		</span>
+	</div>
+
+	<div
+		class="m3-payment-code__popover"
+		role="group"
+		aria-label={i18n(I18nKey.supportAuthor)}
+	>
+		{paymentImages.map(({ modifier, asset, alt, label }) => (
+			<div class:list={["m3-payment-code__qr", modifier]}>
+				<div class="m3-payment-code__image">
+					<img
+						src={asset.src}
+						alt={alt}
+						width={asset.width}
+						height={asset.height}
+						loading="lazy"
+						decoding="async"
+					/>
+				</div>
+				<span class="m3-payment-code__qr-label">{label}</span>
+			</div>
+		))}
+	</div>
+	</div>
+	)}
+
+<style lang="stylus">
+.m3-payment-code
+	position: relative
+	display: flex
+	flex-direction: column
+	align-items: center
+	justify-content: center
+	min-width: 0
+	z-index: 1
+
+	&__trigger
+		display: flex
+		flex-direction: column
+		align-items: center
+		gap: var(--m3e-space-1)
+		color: var(--on-surface-variant)
+		font: var(--m3e-type-label-medium)
+		text-align: center
+
+	&__popover
+		position: absolute
+		left: 50%
+		bottom: calc(100% + var(--m3e-space-2))
+		z-index: 20
+		display: flex
+		align-items: flex-start
+		gap: var(--m3e-space-2)
+		box-sizing: border-box
+		width: min(100%, 24rem, calc(100vw - var(--m3e-space-8)))
+		padding: var(--m3e-space-3)
+		border: 1px solid var(--outline-variant)
+		border-radius: var(--shape-corner-xl)
+		background: var(--float-panel-bg)
+		box-shadow: var(--m3e-elevation-3)
+		opacity: 0
+		visibility: hidden
+		pointer-events: none
+		transform: translate(-50%, var(--m3e-space-2))
+		transition:
+			opacity var(--m3e-duration-short) var(--m3e-easing-standard),
+			transform var(--m3e-duration-short) var(--m3e-easing-emphasized-decelerate),
+			visibility 0s linear var(--m3e-duration-short)
+
+		&::before
+			content: ""
+			position: absolute
+			left: 0
+			right: 0
+			bottom: calc(var(--m3e-space-2) * -1)
+			height: var(--m3e-space-2)
+
+	&__qr
+		flex: 1 1 0
+		min-width: 0
+		display: flex
+		flex-direction: column
+		align-items: center
+		gap: var(--m3e-space-1)
+		color: var(--on-surface-variant)
+		font: var(--m3e-type-label-medium)
+		text-align: center
+
+	&__image
+		width: 100%
+		aspect-ratio: var(--payment-code-image-aspect-ratio)
+		overflow: hidden
+		border-radius: var(--shape-corner-s)
+		background: var(--surface-container-low)
+		line-height: 0
+
+		> img
+			display: block
+			width: 100%
+			height: 100%
+			object-fit: contain
+.m3-payment-code:hover .m3-payment-code__popover,
+.m3-payment-code:focus-within .m3-payment-code__popover
+	opacity: 1
+	visibility: visible
+	pointer-events: auto
+	transform: translate(-50%, 0)
+	transition-delay: 0s
+
+:global(html.motion-reduced) .m3-payment-code__popover
+	transition: none
+
+@media (prefers-reduced-motion: reduce)
+	.m3-payment-code__popover
+		transition: none
+</style>
