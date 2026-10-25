@@ -40,12 +40,13 @@ test("every allowed icon set is a dependency of the theme", () => {
 	}
 });
 
-test("the allow-list is exactly the four sets the theme references", () => {
+test("the allow-list contains the theme's supported icon sets", () => {
 	assert.deepEqual([...ICON_PREFIXES].sort(), [
 		"fa7-brands",
 		"fa7-solid",
 		"material-symbols",
 		"simple-icons",
+		"thesvg-color",
 	]);
 });
 

@@ -72,13 +72,14 @@ function resolveIconSetPath(prefix: string): string | null {
 
 /**
  * Icon sets the theme is allowed to reference.
- * Mirrors `src/config/integrationsConfig.ts`.
+ * Each set must be declared in `package.json` dependencies.
  */
 const ICON_PREFIXES: ReadonlySet<string> = new Set<string>([
 	"fa7-brands",
 	"fa7-solid",
 	"material-symbols",
 	"simple-icons",
+	"thesvg-color",
 ]);
 
 /**

@@ -1,9 +1,9 @@
 ---
 import IconButton from "@components/atoms/action/IconButton.svelte";
+import Icon from "@components/atoms/display/Icon.svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { resolveImageWithMetadata } from "@utils/image-metadata";
-import { Icon } from "astro-icon/components";
 import { paymentCodeConfig } from "@/config";
 
 interface Props {
@@ -52,7 +52,7 @@ const imageAspectRatio =
 			size="small"
 			label={i18n(I18nKey.supportAuthor)}
 		>
-			<Icon name="material-symbols:coffee" aria-hidden="true" />
+			<Icon icon="material-symbols:coffee" aria-hidden="true" />
 		</IconButton>
 		<span class="m3-payment-code__trigger-label">
 			{i18n(I18nKey.supportAuthor)}
