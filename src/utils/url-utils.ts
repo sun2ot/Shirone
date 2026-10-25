@@ -1,4 +1,4 @@
-﻿import { permalinkConfig } from "../config/permalinkConfig.ts";
+import { permalinkConfig } from "../config/permalinkConfig.ts";
 import type I18nKey from "../i18n/i18nKey.ts";
 import { i18n } from "../i18n/translation.ts";
 import {
@@ -100,6 +100,11 @@ export function getCategoryUrl(category: string | null): string {
 	return url(`/archive/?category=${encodeURIComponent(category.trim())}`);
 }
 
+export function getSeriesUrl(series: string): string {
+	if (!series?.trim()) return url("/series/");
+	return url(`/series/${encodeURIComponent(series.trim())}/`);
+}
+
 export function getDir(path: string): string {
 	const lastSlashIndex = path.lastIndexOf("/");
 	if (lastSlashIndex < 0) {
@@ -115,7 +120,11 @@ export function url(path: string, baseUrlOverride?: string): string {
 	if (
 		path.startsWith("http://") ||
 		path.startsWith("https://") ||
-		path.startsWith("data:")
+		path.startsWith("data:") ||
+		path.startsWith("#") ||
+		path.startsWith("mailto:") ||
+		path.startsWith("tel:") ||
+		path.startsWith("javascript:")
 	) {
 		return path;
 	}

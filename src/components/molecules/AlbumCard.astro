@@ -1,7 +1,8 @@
 ---
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
-import { Icon } from "astro-icon/components";
+import Icon from "@iconify/svelte";
+import { url } from "@utils/url-utils";
 import type { AlbumIndexItem } from "@/types/album";
 
 interface Props {
@@ -9,11 +10,12 @@ interface Props {
 }
 
 const { album } = Astro.props;
-const imageSource = album.cover;
+const imageSource = album.cover ? url(album.cover) : "";
+const albumUrl = url(`/albums/${album.id}/`);
 ---
 
 <article class="album-card">
-	<a class="album-card__link" href={`/albums/${album.id}/`} aria-label={album.title}>
+	<a class="album-card__link" href={albumUrl} aria-label={album.title}>
 		<div class="album-card__cover">
 			<img
 				src={imageSource}
@@ -23,16 +25,16 @@ const imageSource = album.cover;
 				referrerpolicy="no-referrer"
 			/>
 				<div class="album-card__cover-fallback" aria-hidden="true">
-					<Icon name="material-symbols:image-outline-rounded" />
+					<Icon icon="material-symbols:image-outline-rounded" />
 				</div>
 				<div class="album-card__badges">
 					<span class="album-card__count">
-						<Icon name="material-symbols:photo-library-outline-rounded" aria-hidden="true" />
+						<Icon icon="material-symbols:photo-library-outline-rounded" aria-hidden="true" />
 						{album.photoCount}
 					</span>
 					{album.protected && (
 						<span class="album-card__protected" title={i18n(I18nKey.albumPasswordTitle)}>
-							<Icon name="material-symbols:lock-rounded" aria-hidden="true" />
+							<Icon icon="material-symbols:lock-rounded" aria-hidden="true" />
 							<span class="sr-only">{i18n(I18nKey.albumPasswordTitle)}</span>
 						</span>
 					)}
@@ -41,7 +43,7 @@ const imageSource = album.cover;
 		<div class="album-card__body">
 				<div class="album-card__title-row">
 					<h2>{album.title}</h2>
-					<Icon name="material-symbols:arrow-forward-rounded" class="album-card__arrow" aria-hidden="true" />
+					<Icon icon="material-symbols:arrow-forward-rounded" class="album-card__arrow" aria-hidden="true" />
 				</div>
 			{album.description && <p class="album-card__description">{album.description}</p>}
 			<div class="album-card__meta">
@@ -131,7 +133,7 @@ const imageSource = album.cover;
 			padding-inline: 0.5rem
 
 	&__body
-		padding: 1rem 1.125rem 1.125rem
+		padding: var(--m3e-space-4) var(--m3e-space-4)
 
 	&__title-row
 		display: flex

@@ -89,6 +89,22 @@ export const ko: Translation = {
 	[Key.devicesViewSpecs]: "상세 정보",
 	[Key.devicesFeatured]: "메인 추천",
 
+	[Key.games]: "게임",
+	[Key.gamesBanner]:
+		"내가 플레이하는 게임 — 커버 아트, 평점, 플레이 시간과 한줄평.",
+	[Key.gamesCounts]: "종",
+	[Key.gamesNoResults]: "조건에 맞는 게임이 없습니다",
+	[Key.gamesSearchPlaceholder]: "제목, 개발사, 장르로 검색...",
+	[Key.gamesCategoryLabel]: "게임 카테고리",
+	[Key.gamesStatusPlaying]: "플레이 중",
+	[Key.gamesStatusCompleted]: "클리어",
+	[Key.gamesStatusBacklog]: "밀린 게임",
+	[Key.gamesStatusWishlist]: "위시리스트",
+	[Key.gamesViewDetails]: "스토어 페이지",
+	[Key.gamesFeatured]: "추천",
+	[Key.gamesHours]: "시간",
+	[Key.gamesRating]: "평점",
+
 	[Key.timeline]: "타임라인",
 	[Key.timelineBanner]: "성장 궤적, 중요한 경험 및 이정표 기록.",
 	[Key.timelineCounts]: "개의 기록",
@@ -135,6 +151,16 @@ export const ko: Translation = {
 
 	[Key.tags]: "태그",
 	[Key.categories]: "카테고리",
+	[Key.series]: "시리즈",
+	[Key.seriesCount]: "시리즈",
+	[Key.seriesCounts]: "시리즈",
+	[Key.seriesStatusOngoing]: "연재 중",
+	[Key.seriesStatusCompleted]: "완결",
+	[Key.seriesPartOf]: "이 글은 시리즈의 일부입니다",
+	[Key.seriesPart]: "전체 {total}편 중 {index}편",
+	[Key.seriesPrevInSeries]: "시리즈 내 이전 글",
+	[Key.seriesNextInSeries]: "시리즈 내 다음 글",
+	[Key.seriesViewAll]: "모든 시리즈 보기",
 	[Key.recentPosts]: "최근 게시물",
 	[Key.tableOfContents]: "목차",
 	[Key.formulaScrollable]: "가로로 스크롤 가능한 수식",
@@ -149,6 +175,7 @@ export const ko: Translation = {
 	[Key.announcementClose]: "공지 닫기",
 
 	[Key.comments]: "댓글",
+	[Key.commentsEditor]: "댓글 내용",
 	[Key.commentsLoading]: "댓글을 불러오는 중...",
 	[Key.commentsLoadFailed]: "댓글을 불러오지 못했습니다",
 	[Key.commentsRequiresJavaScript]:
@@ -211,6 +238,7 @@ export const ko: Translation = {
 	[Key.musicHidePlaylist]: "재생 목록 숨기기",
 	[Key.musicEmpty]: "재생 목록에 곡이 없습니다",
 	[Key.musicLoading]: "음악을 불러오는 중...",
+	[Key.musicNotRequested]: "아직 요청되지 않음",
 	[Key.musicNowPlaying]: "지금 재생 중: {title}",
 	[Key.musicErrorEmptyPlaylist]: "재생 목록이 비어 있습니다.",
 	[Key.musicErrorSourceUnavailable]: "이 곡을 재생할 수 없습니다.",
@@ -218,7 +246,7 @@ export const ko: Translation = {
 		"자동 재생이 차단되었습니다. 재생 버튼을 눌러 시작하세요.",
 	[Key.musicErrorInvalidTrack]: "곡 정보가 올바르지 않습니다.",
 
-	[Key.themeColor]: "Theme Color",
+	[Key.themeColor]: "테마 색상",
 	[Key.colorStyle]: "색상 스타일",
 	[Key.colorSpec]: "색상 규격",
 
@@ -279,6 +307,10 @@ export const ko: Translation = {
 	[Key.retry]: "다시 시도",
 	[Key.backToTop]: "맨 위로 돌아가기",
 	[Key.backToComment]: "댓글로 이동",
+	[Key.notFound]: "404",
+	[Key.notFoundTitle]: "이 페이지는 길을 잃었어요",
+	[Key.notFoundDescription]:
+		"이동되었거나 보관되었거나, 처음부터 존재하지 않았을 수도 있어요.",
 	[Key.backToHome]: "홈으로 돌아가기",
 	[Key.close]: "닫기",
 	[Key.scanToRead]: "QR 코드로 글 읽기",

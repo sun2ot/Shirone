@@ -59,9 +59,11 @@ $effect(() => {
 		if (e.key === "Escape") open = false;
 	};
 	const onClick = (e: MouseEvent) => {
-		if (menuEl && !menuEl.contains(e.target as Node)) {
+		const target = e.target;
+		if (!(target instanceof Node)) return;
+		if (menuEl && !menuEl.contains(target)) {
 			// 点击落在其他菜单（role="menu"）内时不关闭，支持多菜单共存
-			if ((e.target as Node).closest?.('[role="menu"]')) return;
+			if (target instanceof Element && target.closest('[role="menu"]')) return;
 			open = false;
 		}
 	};
@@ -92,8 +94,8 @@ $effect(() => {
     min-width: 7rem
     max-width: 17.5rem
     width: max-content
-    padding: 0.5rem 0.25rem
-    border-radius: var(--shape-corner-xs)
+    padding: var(--m3e-space-2) var(--m3e-space-1)
+    border-radius: var(--shape-corner-l)
     /* StandardMenuTokens.ContainerColor = SurfaceContainerLow. */
     background: var(--surface-container-low)
     box-shadow: var(--m3e-elevation-2)
@@ -128,7 +130,7 @@ $effect(() => {
         min-height: 3rem
         padding: 0 0.75rem
         border: none
-        border-radius: var(--shape-corner-s)
+        border-radius: var(--shape-corner-m)
         background: transparent
         color: var(--on-surface)
         font: var(--m3e-type-label-large)

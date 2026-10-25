@@ -7,6 +7,7 @@ import {
 	TEXTURE_OPACITY_KEY,
 	TEXTURE_PRESET_KEY,
 	TEXTURE_PRESETS,
+	THEME_CHANGE_EVENT,
 	WALLPAPER_MODE_CHANGE_EVENT,
 	WALLPAPER_MODE_KEY,
 } from "@constants/constants.ts";
@@ -110,9 +111,7 @@ export function setWallpaperMode(mode: WallpaperMode): void {
 }
 
 export function getDefaultHue(): number {
-	const fallback = "250";
-	const configCarrier = document.getElementById("config-carrier");
-	return Number.parseInt(configCarrier?.dataset.hue || fallback, 10);
+	return siteConfig.themeColor.hue;
 }
 
 export function getHue(): number {
@@ -130,7 +129,7 @@ export function setHue(hue: number): void {
 	applyCurrentScheme();
 }
 
-export function applyThemeToDocument(theme: LIGHT_DARK_MODE) {
+export function applyThemeToDocument(theme: LIGHT_DARK_MODE): void {
 	switch (theme) {
 		case LIGHT_MODE:
 			document.documentElement.classList.remove("dark");
@@ -155,6 +154,11 @@ export function applyThemeToDocument(theme: LIGHT_DARK_MODE) {
 		isDark
 			? (expressiveCodeConfig.darkTheme ?? expressiveCodeConfig.theme)
 			: (expressiveCodeConfig.lightTheme ?? expressiveCodeConfig.theme),
+	);
+
+	// 广播明暗状态变化，供按需加载的第三方组件（如 giscus iframe）同步主题
+	window.dispatchEvent(
+		new CustomEvent(THEME_CHANGE_EVENT, { detail: { isDark } }),
 	);
 
 	// Dark mode affects the resolved M3/M3E scheme

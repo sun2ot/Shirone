@@ -92,6 +92,23 @@ export const id: Translation = {
 	[Key.devicesViewSpecs]: "Lihat detail",
 	[Key.devicesFeatured]: "Unggulan",
 
+	[Key.games]: "Game",
+	[Key.gamesBanner]:
+		"Game yang saya mainkan — sampul, rating, jam main, dan ulasan singkat.",
+	[Key.gamesCounts]: "game",
+	[Key.gamesNoResults]: "Tidak ada game yang cocok dengan filter",
+	[Key.gamesSearchPlaceholder]:
+		"Cari berdasarkan judul, pengembang, atau genre...",
+	[Key.gamesCategoryLabel]: "Kategori game",
+	[Key.gamesStatusPlaying]: "Dimainkan",
+	[Key.gamesStatusCompleted]: "Selesai",
+	[Key.gamesStatusBacklog]: "Tertunda",
+	[Key.gamesStatusWishlist]: "Daftar keinginan",
+	[Key.gamesViewDetails]: "Halaman toko",
+	[Key.gamesFeatured]: "Unggulan",
+	[Key.gamesHours]: "jam",
+	[Key.gamesRating]: "Rating",
+
 	[Key.timeline]: "Linimasa",
 	[Key.timelineBanner]:
 		"Jejak pertumbuhan, tonggak pencapaian, dan momen berharga.",
@@ -139,6 +156,16 @@ export const id: Translation = {
 
 	[Key.tags]: "Tag",
 	[Key.categories]: "Kategori",
+	[Key.series]: "Seri",
+	[Key.seriesCount]: "seri",
+	[Key.seriesCounts]: "seri",
+	[Key.seriesStatusOngoing]: "Berjalan",
+	[Key.seriesStatusCompleted]: "Selesai",
+	[Key.seriesPartOf]: "Tulisan ini bagian dari seri",
+	[Key.seriesPart]: "Bagian {index} dari {total}",
+	[Key.seriesPrevInSeries]: "Sebelumnya di seri",
+	[Key.seriesNextInSeries]: "Berikutnya di seri",
+	[Key.seriesViewAll]: "Lihat semua seri",
 	[Key.recentPosts]: "Postingan Terbaru",
 	[Key.tableOfContents]: "Daftar Isi",
 	[Key.formulaScrollable]: "Rumus yang dapat digulir secara horizontal",
@@ -153,6 +180,7 @@ export const id: Translation = {
 	[Key.announcementClose]: "Tutup pengumuman",
 
 	[Key.comments]: "Komentar",
+	[Key.commentsEditor]: "Isi komentar",
 	[Key.commentsLoading]: "Memuat komentar...",
 	[Key.commentsLoadFailed]: "Gagal memuat komentar",
 	[Key.commentsRequiresJavaScript]:
@@ -215,6 +243,7 @@ export const id: Translation = {
 	[Key.musicHidePlaylist]: "Sembunyikan daftar putar",
 	[Key.musicEmpty]: "Tidak ada lagu dalam daftar putar",
 	[Key.musicLoading]: "Memuat musik...",
+	[Key.musicNotRequested]: "Belum diminta",
 	[Key.musicNowPlaying]: "Sedang diputar: {title}",
 	[Key.musicErrorEmptyPlaylist]: "Daftar putar kosong.",
 	[Key.musicErrorSourceUnavailable]: "Lagu ini tidak tersedia.",
@@ -222,7 +251,7 @@ export const id: Translation = {
 		"Pemutaran otomatis diblokir. Tekan putar untuk memulai.",
 	[Key.musicErrorInvalidTrack]: "Lagu ini tidak valid.",
 
-	[Key.themeColor]: "Theme Color",
+	[Key.themeColor]: "Warna Tema",
 	[Key.colorStyle]: "Gaya Warna",
 	[Key.colorSpec]: "Spesifikasi Warna",
 
@@ -284,6 +313,10 @@ export const id: Translation = {
 	[Key.retry]: "Coba Lagi",
 	[Key.backToTop]: "Kembali ke atas",
 	[Key.backToComment]: "Lompat ke komentar",
+	[Key.notFound]: "404",
+	[Key.notFoundTitle]: "Halaman ini tersesat",
+	[Key.notFoundDescription]:
+		"Mungkin sudah dipindahkan, diarsipkan, atau memang belum pernah ada.",
 	[Key.backToHome]: "Kembali ke beranda",
 	[Key.close]: "Tutup",
 	[Key.scanToRead]: "Pindai untuk membaca artikel",

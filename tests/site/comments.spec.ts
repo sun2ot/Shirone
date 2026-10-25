@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import {
 	commentConfig,
 	resolveCommentOptions,
@@ -14,20 +14,27 @@ import { tr } from "../../src/i18n/languages/tr";
 import { vi } from "../../src/i18n/languages/vi";
 import { zh_CN } from "../../src/i18n/languages/zh_CN";
 import { zh_TW } from "../../src/i18n/languages/zh_TW";
-import type { CommentConfig } from "../../src/types/commentConfig";
+import type {
+	CommentConfig,
+	GiscusConfig,
+	WalineConfig,
+} from "../../src/types/commentConfig";
+import { customWalineOptions } from "../fixtures/waline-options";
 
 const translations = [en, es, id, ja, ko, th, tr, vi, zh_CN, zh_TW];
 const commentKeys = [
 	I18nKey.comments,
+	I18nKey.commentsEditor,
 	I18nKey.commentsLoading,
 	I18nKey.commentsLoadFailed,
 	I18nKey.commentsRequiresJavaScript,
+	I18nKey.retry,
 ];
 
 const twikooScriptUrl =
 	"https://cdn.jsdelivr.net/npm/twikoo@1.7.19/dist/twikoo.min.js";
 
-async function mockTwikoo(page: import("@playwright/test").Page) {
+async function mockTwikoo(page: Page) {
 	await page.route(twikooScriptUrl, async (route) => {
 		await route.fulfill({
 			contentType: "application/javascript",
@@ -89,6 +96,80 @@ async function mockTwikoo(page: import("@playwright/test").Page) {
 	});
 }
 
+const giscusScriptUrl = "https://giscus.app/client.js";
+
+async function mockGiscus(page: Page) {
+	// 模拟 giscus client.js 的真实挂载语义：不要求预置 .giscus 容器，
+	// 在 script 之后自建容器并注入 iframe；widget 页面回显 postMessage 以验证主题转发。
+	await page.route("https://giscus.app/widget*", async (route) => {
+		await route.fulfill({
+			contentType: "text/html",
+			body: `<!doctype html><html><body><script>
+				window.addEventListener("message", function (e) {
+					if (e.data && e.data.giscus) window.parent.postMessage(e.data, "*");
+				});
+			</script></body></html>`,
+		});
+	});
+	await page.route(giscusScriptUrl, async (route) => {
+		await route.fulfill({
+			contentType: "application/javascript",
+			body: `
+				(() => {
+					const current = document.currentScript;
+					let container = document.querySelector('.giscus');
+					if (!container) {
+						container = document.createElement('div');
+						container.className = 'giscus';
+						current.insertAdjacentElement('afterend', container);
+					}
+					const iframe = document.createElement('iframe');
+					iframe.className = 'giscus-frame giscus-frame--loading';
+					iframe.title = 'Comments';
+					const params = new URLSearchParams();
+					for (const [key, value] of Object.entries(current.dataset)) {
+						params.set(key, value);
+					}
+					params.set('origin', window.location.href);
+					iframe.src = 'https://giscus.app/widget?' + params.toString();
+					container.appendChild(iframe);
+					window.__giscusMock = { container, iframe };
+				})();
+			`,
+		});
+	});
+}
+
+async function mockWaline(page: Page, config: WalineConfig) {
+	await page.route(config.scriptUrl, (route) =>
+		route.fulfill({
+			contentType: "application/javascript",
+			body: `
+				window.Waline = {
+					init(options) {
+						const editor = document.createElement('textarea');
+						editor.setAttribute('aria-label', 'Comment');
+						editor.placeholder = options.locale?.placeholder ?? '';
+						options.el.dataset.walineMockOptions = JSON.stringify({ ...options, el: undefined });
+						options.el.replaceChildren(editor);
+						return { destroy() { options.el.replaceChildren(); } };
+					}
+				};
+			`,
+		}),
+	);
+	await page.route(config.styleUrl, (route) =>
+		route.fulfill({ contentType: "text/css", body: "" }),
+	);
+	// Emoji presets are fetched by the theme before Waline mounts.
+	await page.route("**/info.json", (route) =>
+		route.fulfill({
+			contentType: "application/json",
+			body: JSON.stringify({ name: "Fixture", icon: "a", items: ["a"] }),
+		}),
+	);
+}
+
 test.describe("Comment System - Configuration & Architecture", () => {
 	test.use({ viewport: { width: 1280, height: 900 } });
 
@@ -104,6 +185,7 @@ test.describe("Comment System - Configuration & Architecture", () => {
 
 	test("resolveCommentOptions returns null when disabled or misconfigured", () => {
 		const disabledConfig: CommentConfig = {
+			...commentConfig,
 			enable: false,
 			provider: "twikoo",
 			lazy: true,
@@ -117,6 +199,7 @@ test.describe("Comment System - Configuration & Architecture", () => {
 		expect(resolveCommentOptions(disabledConfig)).toBeNull();
 
 		const noneProviderConfig: CommentConfig = {
+			...commentConfig,
 			enable: true,
 			provider: "none",
 			lazy: true,
@@ -130,6 +213,7 @@ test.describe("Comment System - Configuration & Architecture", () => {
 		expect(resolveCommentOptions(noneProviderConfig)).toBeNull();
 
 		const missingEnvIdConfig: CommentConfig = {
+			...commentConfig,
 			enable: true,
 			provider: "twikoo",
 			lazy: true,
@@ -145,6 +229,7 @@ test.describe("Comment System - Configuration & Architecture", () => {
 
 	test("resolveCommentOptions returns resolved options when valid", () => {
 		const validConfig: CommentConfig = {
+			...commentConfig,
 			enable: true,
 			provider: "twikoo",
 			lazy: true,
@@ -161,19 +246,212 @@ test.describe("Comment System - Configuration & Architecture", () => {
 		expect(resolved).not.toBeNull();
 		expect(resolved?.provider).toBe("twikoo");
 		expect(resolved?.lazy).toBe(true);
-		expect(resolved?.twikoo.envId).toBe("https://twikoo.mysqil.com");
-		expect(resolved?.twikoo.placeholder).toBe("Comment guidance");
+		if (resolved?.provider === "twikoo") {
+			expect(resolved.twikoo.envId).toBe("https://twikoo.mysqil.com");
+			expect(resolved.twikoo.placeholder).toBe("Comment guidance");
+		}
 	});
 
-	// 评论 UI 测试依赖真实渲染的评论区；默认模板关闭评论时跳过，本机开启后自动运行
-	const commentsUiEnabled = resolveCommentOptions(commentConfig) !== null;
+	test("resolveCommentOptions returns null for giscus with missing required ids", () => {
+		const baseGiscus: GiscusConfig = {
+			repo: "owner/repo",
+			repoId: "R_placeholder",
+			category: "Announcements",
+			categoryId: "DIC_placeholder",
+			mapping: "pathname",
+			strict: false,
+			reactionsEnabled: true,
+			emitMetadata: false,
+			inputPosition: "bottom",
+			theme: { light: "light", dark: "dark" },
+			lang: "auto",
+			scriptUrl: "https://giscus.app/client.js",
+		};
+		const twikooStub = {
+			envId: "",
+			scriptUrl: "",
+			lang: "auto",
+		} as const;
+
+		const missingRepoId: CommentConfig = {
+			...commentConfig,
+			enable: true,
+			provider: "giscus",
+			lazy: true,
+			twikoo: twikooStub,
+			giscus: { ...baseGiscus, repoId: "  " },
+		};
+		expect(resolveCommentOptions(missingRepoId)).toBeNull();
+
+		const missingCategoryId: CommentConfig = {
+			...commentConfig,
+			enable: true,
+			provider: "giscus",
+			lazy: true,
+			twikoo: twikooStub,
+			giscus: { ...baseGiscus, categoryId: "" },
+		};
+		expect(resolveCommentOptions(missingCategoryId)).toBeNull();
+
+		const disabledGiscus: CommentConfig = {
+			...commentConfig,
+			enable: false,
+			provider: "giscus",
+			lazy: true,
+			twikoo: twikooStub,
+			giscus: baseGiscus,
+		};
+		expect(resolveCommentOptions(disabledGiscus)).toBeNull();
+	});
+
+	test("resolveCommentOptions returns trimmed giscus options when valid", () => {
+		const validConfig: CommentConfig = {
+			...commentConfig,
+			enable: true,
+			provider: "giscus",
+			lazy: false,
+			twikoo: {
+				envId: "",
+				scriptUrl: "",
+				lang: "auto",
+			},
+			giscus: {
+				repo: " owner/repo ",
+				repoId: " R_id ",
+				category: " General ",
+				categoryId: " DIC_id ",
+				mapping: "pathname",
+				strict: true,
+				reactionsEnabled: true,
+				emitMetadata: false,
+				inputPosition: "top",
+				theme: { light: "light", dark: "transparent_dark" },
+				lang: "auto",
+				scriptUrl: "https://giscus.app/client.js",
+			},
+		};
+
+		const resolved = resolveCommentOptions(validConfig);
+		expect(resolved).not.toBeNull();
+		expect(resolved?.provider).toBe("giscus");
+		expect(resolved?.lazy).toBe(false);
+		if (resolved?.provider === "giscus") {
+			expect(resolved.giscus.repo).toBe("owner/repo");
+			expect(resolved.giscus.repoId).toBe("R_id");
+			expect(resolved.giscus.category).toBe("General");
+			expect(resolved.giscus.categoryId).toBe("DIC_id");
+			expect(resolved.giscus.theme.dark).toBe("transparent_dark");
+		}
+	});
+
+	const validWalineConfig: CommentConfig = {
+		...commentConfig,
+		enable: true,
+		provider: "waline",
+		waline: {
+			...commentConfig.waline,
+			serverURL: "https://comments.example.com",
+			scriptUrl: "https://cdn.example.com/waline.umd.js",
+			styleUrl: "https://cdn.example.com/waline.css",
+			lang: "auto",
+		},
+	};
+
+	test("resolveCommentOptions rejects disabled, missing or invalid Waline configuration", () => {
+		expect(
+			resolveCommentOptions({ ...validWalineConfig, enable: false }),
+		).toBeNull();
+		expect(
+			resolveCommentOptions({ ...validWalineConfig, provider: "none" }),
+		).toBeNull();
+
+		// 模拟旧 JS/YAML 配置缺失 Waline 块或必填字段的运行时输入。
+		const legacy = structuredClone(validWalineConfig);
+		Reflect.deleteProperty(legacy, "waline");
+		expect(resolveCommentOptions(legacy)).toBeNull();
+		for (const key of ["serverURL", "scriptUrl", "styleUrl"] as const) {
+			for (const value of ["", "  "]) {
+				expect(
+					resolveCommentOptions({
+						...validWalineConfig,
+						waline: { ...validWalineConfig.waline, [key]: value },
+					}),
+					`${key} must not be blank`,
+				).toBeNull();
+			}
+			const missing = structuredClone(validWalineConfig);
+			Reflect.deleteProperty(missing.waline, key);
+			expect(
+				resolveCommentOptions(missing),
+				`${key} must be present`,
+			).toBeNull();
+		}
+		for (const serverURL of [
+			"invalid",
+			"/api/comments",
+			"ftp://comments.example.com",
+			"javascript:alert(1)",
+		]) {
+			expect(
+				resolveCommentOptions({
+					...validWalineConfig,
+					waline: { ...validWalineConfig.waline, serverURL },
+				}),
+				`${serverURL} must be rejected`,
+			).toBeNull();
+		}
+	});
+
+	test("resolveCommentOptions trims Waline fields and preserves locale and mixed emoji options", () => {
+		const config: CommentConfig = {
+			...validWalineConfig,
+			lazy: false,
+			waline: {
+				...validWalineConfig.waline,
+				...customWalineOptions,
+				serverURL: " https://comments.example.com/api/ ",
+				scriptUrl: " /comments/waline.umd.js ",
+				styleUrl: " /comments/waline.css ",
+				lang: " en ",
+				pageSize: 20,
+				login: "force",
+			},
+		};
+		const before = structuredClone(config);
+		const expected = {
+			provider: "waline",
+			lazy: false,
+			waline: {
+				...config.waline,
+				serverURL: "https://comments.example.com/api/",
+				scriptUrl: "/comments/waline.umd.js",
+				styleUrl: "/comments/waline.css",
+				lang: "en",
+			},
+		};
+		expect(resolveCommentOptions(config)).toEqual(expected);
+		expect(config).toEqual(before);
+		expect(
+			resolveCommentOptions({
+				...config,
+				waline: { ...config.waline, lang: "  " },
+			}),
+		).toEqual({ ...expected, waline: { ...expected.waline, lang: "auto" } });
+	});
+
+	// giscus UI 测试要求评论启用且 provider 为 giscus（与站点真实配置联动）
+	const giscusUiEnabled =
+		resolveCommentOptions(commentConfig)?.provider === "giscus";
+	// twikoo UI 测试要求评论启用且 provider 为 twikoo（与站点真实配置联动）
+	const twikooUiEnabled =
+		resolveCommentOptions(commentConfig)?.provider === "twikoo";
 
 	test("enabled comment section renders DOM structure with test data", async ({
 		page,
 	}) => {
 		test.skip(
-			!commentsUiEnabled,
-			"评论默认关闭，请在 src/config/commentConfig.ts 开启后运行 UI 测试",
+			!twikooUiEnabled,
+			"评论未启用或 provider 非 twikoo，跳过 twikoo UI 测试",
 		);
 		await mockTwikoo(page);
 		await page.goto("/posts/guide/", { waitUntil: "networkidle" });
@@ -218,12 +496,142 @@ test.describe("Comment System - Configuration & Architecture", () => {
 		expect(twikooCssRequests).toHaveLength(0);
 	});
 
+	test("pages without comments load no Giscus DOM or external requests", async ({
+		page,
+	}) => {
+		const giscusRequests: string[] = [];
+		page.on("request", (request) => {
+			if (request.url().includes("giscus")) {
+				giscusRequests.push(request.url());
+			}
+		});
+
+		await page.goto("/");
+		await expect(page.locator("#comments")).toHaveCount(0);
+		await expect(page.locator(".shirone-giscus-wrapper")).toHaveCount(0);
+		expect(giscusRequests).toHaveLength(0);
+	});
+
+	for (const path of ["/", "/posts/guide/"]) {
+		test(`Waline leaves no DOM, styles or external requests on ${path} without comments`, async ({
+			page,
+			baseURL,
+		}) => {
+			test.skip(
+				path !== "/" && resolveCommentOptions(commentConfig) !== null,
+				"文章零足迹测试需要评论关闭或配置不完整",
+			);
+			const config = commentConfig.waline;
+			const resourceUrls = [
+				config?.scriptUrl,
+				config?.styleUrl,
+				config?.serverURL,
+			]
+				.filter((url): url is string => Boolean(url?.trim()))
+				.map((url) => new URL(url.trim(), baseURL).href);
+			const requests: string[] = [];
+			page.on("request", (request) => {
+				const url = request.url();
+				if (
+					resourceUrls.some(
+						(resource) =>
+							url === resource ||
+							url.startsWith(`${resource.replace(/\/$/, "")}/`),
+					)
+				)
+					requests.push(url);
+			});
+			if (config) await mockWaline(page, config);
+			await page.goto(path);
+			await expect(page.locator("#comments")).toHaveCount(0);
+			await expect(
+				page.locator(
+					"shirone-waline, .shirone-waline-wrapper, [data-waline-style]",
+				),
+			).toHaveCount(0);
+			const styles = await page.locator("style").allTextContents();
+			expect(styles.some((style) => style.includes("--waline-"))).toBe(false);
+			expect(requests).toEqual([]);
+		});
+	}
+
+	test("Waline mounts in the shared comment section with serialized configuration", async ({
+		page,
+	}) => {
+		const options = resolveCommentOptions(commentConfig);
+		if (options?.provider !== "waline") {
+			test.skip(true, "评论未启用或 provider 非 waline，跳过 Waline UI 测试");
+			return;
+		}
+		await mockWaline(page, options.waline);
+		await page.goto("/posts/guide/");
+		const section = page.locator("#comments");
+		await expect(section).toHaveCount(1);
+		await expect(section).toHaveAttribute("aria-labelledby", "comments-title");
+		await expect(section.locator("#comments-title")).toBeVisible();
+		await expect(
+			section.locator(".shirone-twikoo-wrapper, .shirone-giscus-wrapper"),
+		).toHaveCount(0);
+
+		const wrapper = section.locator("shirone-waline");
+		await expect(wrapper).toHaveAttribute(
+			"data-waline-script-url",
+			options.waline.scriptUrl,
+		);
+		await expect(wrapper).toHaveAttribute(
+			"data-waline-style-url",
+			options.waline.styleUrl,
+		);
+		await expect(wrapper).toHaveAttribute(
+			"data-waline-lazy",
+			String(options.lazy),
+		);
+		const serialized = JSON.parse(
+			(await wrapper.getAttribute("data-waline-options")) ?? "null",
+		);
+		expect(serialized).toMatchObject({
+			serverURL: options.waline.serverURL,
+			path: "/posts/guide/",
+			dark: false,
+			comment: false,
+			pageview: false,
+			...(options.waline.locale ? { locale: options.waline.locale } : {}),
+			...(options.waline.emoji !== undefined
+				? { emoji: options.waline.emoji }
+				: {}),
+		});
+		expect(serialized).not.toHaveProperty("placeholder");
+		expect(serialized).not.toHaveProperty("scriptUrl");
+		expect(serialized).not.toHaveProperty("styleUrl");
+		await wrapper.scrollIntoViewIfNeeded();
+		await expect(wrapper).toHaveAttribute("data-waline-state", "ready");
+		await expect(
+			wrapper
+				.locator(".waline-loading, .waline-error")
+				.filter({ visible: true }),
+		).toHaveCount(0);
+		const mounted = await wrapper
+			.locator("[data-waline]")
+			.getAttribute("data-waline-mock-options");
+		const { emoji: mountedEmoji, ...mountedRest } = JSON.parse(
+			mounted ?? "null",
+		);
+		const { emoji: serializedEmoji, ...serializedRest } = serialized;
+		expect(mountedRest).toEqual(serializedRest);
+		// Presets reach Waline as the inline packs the theme already fetched.
+		if (serializedEmoji === false) expect(mountedEmoji).toBe(false);
+		else expect(Array.isArray(mountedEmoji)).toBe(true);
+		await expect(
+			wrapper.getByRole("textbox", { name: "Comment", exact: true }),
+		).toHaveAttribute("placeholder", options.waline.locale?.placeholder ?? "");
+	});
+
 	test("comment editor keeps fields aligned on desktop and mobile", async ({
 		page,
 	}) => {
 		test.skip(
-			!commentsUiEnabled,
-			"评论默认关闭，请在 src/config/commentConfig.ts 开启后运行 UI 测试",
+			!twikooUiEnabled,
+			"评论未启用或 provider 非 twikoo，跳过 twikoo UI 测试",
 		);
 		await mockTwikoo(page);
 		await page.goto("/posts/guide/");
@@ -288,12 +696,91 @@ test.describe("Comment System - Configuration & Architecture", () => {
 		await assertFieldGeometry(true);
 	});
 
+	test("browser and system row stays clear of an open reply form", async ({
+		page,
+	}) => {
+		test.skip(
+			!twikooUiEnabled,
+			"评论未启用或 provider 非 twikoo，跳过 twikoo UI 测试",
+		);
+		await mockTwikoo(page);
+		await page.goto("/posts/guide/");
+		await page.locator("#comments").scrollIntoViewIfNeeded();
+		await expect(page.locator(".tk-comments-container")).toHaveCount(1);
+		// 一条打开了回复框的评论，连同 Twikoo 运行时注入、决定浏览器/系统行排版的默认样式
+		await page.evaluate(() => {
+			document.querySelector(".tk-comments-container")?.insertAdjacentHTML(
+				"beforeend",
+				`<style>
+					.tk-comment { margin-top: 1rem; display: flex; }
+					.tk-main { flex: 1; width: 0; }
+					.tk-extras { color: #999999; font-size: 0.875em; display: flex; flex-wrap: wrap; }
+					.tk-extra { margin-top: 0.5rem; margin-right: 0.75rem; display: flex; align-items: center; }
+					.tk-extra-text { line-height: 1; }
+					.tk-submit { margin-top: 1rem; }
+				</style>
+				<div class="tk-comment">
+					<div class="tk-avatar"></div>
+					<div class="tk-main">
+						<div class="tk-content"><span><p>Hello</p></span></div>
+						<div class="tk-extras">
+							<div class="tk-extra"><span class="tk-icon"><svg width="14" height="14"></svg></span><span class="tk-extra-text">&nbsp;Windows 11</span></div>
+							<div class="tk-extra"><span class="tk-icon"><svg width="14" height="14"></svg></span><span class="tk-extra-text">&nbsp;Chrome 141</span></div>
+						</div>
+						<div class="tk-submit"><div class="tk-row"><div class="tk-col"><div class="tk-input el-textarea"><textarea class="el-textarea__inner"></textarea></div></div></div></div>
+					</div>
+				</div>`,
+			);
+		});
+
+		const row = await page.locator(".tk-comment").evaluate((element) => {
+			const extras = element.querySelector(".tk-extras");
+			const reply = element.querySelector(".tk-submit");
+			if (!extras || !reply) throw new Error("The reply fixture is missing");
+			const textBottom = Math.max(
+				...[...extras.querySelectorAll(".tk-extra-text")].flatMap((text) => {
+					const range = document.createRange();
+					range.selectNodeContents(text);
+					return [...range.getClientRects()].map((rect) => rect.bottom);
+				}),
+			);
+			const extrasBottom = extras.getBoundingClientRect().bottom;
+			const gap = reply.getBoundingClientRect().top - extrasBottom;
+			// Measure first: the token probe joins the row only afterwards.
+			const probe = document.createElement("span");
+			probe.style.cssText =
+				"display:block;flex:none;color:var(--on-surface-variant);width:var(--m3e-space-3)";
+			extras.append(probe);
+			const expected = getComputedStyle(probe);
+			const result = {
+				extrasBottom,
+				textBottom,
+				gap,
+				spacing: Number.parseFloat(expected.width),
+				color: getComputedStyle(extras).color,
+				expectedColor: expected.color,
+			};
+			probe.remove();
+			return result;
+		});
+		// 文字不溢出所在行，评论内的回复框与这一行隔开一个间距单位
+		expect(row.textBottom).toBeLessThanOrEqual(row.extrasBottom);
+		expect(row.gap).toBeCloseTo(row.spacing, 0);
+		// 使用主题次要文字色，而不是 Twikoo 的 #999
+		expect(row.color).toBe(row.expectedColor);
+		// 顶部主编辑区仍然贴齐
+		await expect(page.locator(".tk-comments > .tk-submit")).toHaveCSS(
+			"margin-top",
+			"0px",
+		);
+	});
+
 	test("preview appears only for comment content with tonal colors", async ({
 		page,
 	}) => {
 		test.skip(
-			!commentsUiEnabled,
-			"评论默认关闭，请在 src/config/commentConfig.ts 开启后运行 UI 测试",
+			!twikooUiEnabled,
+			"评论未启用或 provider 非 twikoo，跳过 twikoo UI 测试",
 		);
 		await mockTwikoo(page);
 		await page.goto("/posts/guide/");
@@ -336,8 +823,8 @@ test.describe("Comment System - Configuration & Architecture", () => {
 		page,
 	}) => {
 		test.skip(
-			!commentsUiEnabled,
-			"评论默认关闭，请在 src/config/commentConfig.ts 开启后运行 UI 测试",
+			!twikooUiEnabled,
+			"评论未启用或 provider 非 twikoo，跳过 twikoo UI 测试",
 		);
 		await mockTwikoo(page);
 		await page.goto("/posts/guide/");
@@ -358,8 +845,8 @@ test.describe("Comment System - Configuration & Architecture", () => {
 
 	test("comment loading uses the centered M3E indicator", async ({ page }) => {
 		test.skip(
-			!commentsUiEnabled,
-			"评论默认关闭，请在 src/config/commentConfig.ts 开启后运行 UI 测试",
+			!twikooUiEnabled,
+			"评论未启用或 provider 非 twikoo，跳过 twikoo UI 测试",
 		);
 		await mockTwikoo(page);
 		await page.goto("/posts/guide/");
@@ -398,8 +885,8 @@ test.describe("Comment System - Configuration & Architecture", () => {
 
 	test("Twikoo hash actions preserve page scroll", async ({ page }) => {
 		test.skip(
-			!commentsUiEnabled,
-			"评论默认关闭，请在 src/config/commentConfig.ts 开启后运行 UI 测试",
+			!twikooUiEnabled,
+			"评论未启用或 provider 非 twikoo，跳过 twikoo UI 测试",
 		);
 		await mockTwikoo(page);
 		await page.goto("/posts/guide/");
@@ -450,7 +937,7 @@ test.describe("Comment System - Configuration & Architecture", () => {
 		await page.goto("/posts/guide/", { waitUntil: "networkidle" });
 
 		const result = await page.evaluate(async () => {
-			// 动态引入 script-loader 模块
+			// @ts-expect-error 此绝对 URL 由 Vite 在浏览器中解析。
 			const { loadScriptOnce } = await import("/src/utils/script-loader.ts");
 
 			// Mock 创建一个测试用的 inline blob script URL
@@ -477,5 +964,152 @@ test.describe("Comment System - Configuration & Architecture", () => {
 
 		expect(result.scriptTagCount).toBe(1);
 		expect(result.executionCount).toBe(1);
+	});
+
+	test("giscus mounts iframe with configured attributes into wrapper", async ({
+		page,
+	}) => {
+		test.skip(
+			!giscusUiEnabled,
+			"评论未启用或 provider 非 giscus，跳过 giscus UI 测试",
+		);
+		await mockGiscus(page);
+		await page.goto("/posts/guide/");
+		await page.locator("#comments").scrollIntoViewIfNeeded();
+
+		// 骨架屏先渲染，iframe 挂载后 :has() 隐藏骨架屏
+		const wrapper = page.locator(".shirone-giscus-wrapper");
+		await expect(wrapper).toHaveCount(1);
+		const iframe = wrapper.locator("iframe.giscus-frame");
+		await expect(iframe).toHaveCount(1);
+		await expect(wrapper.locator(".giscus-skeleton")).toBeHidden();
+
+		// data-* 配置经 client.js dataset 进入 widget URL：
+		// 凭据对照 resolveCommentOptions 动态断言（不硬编码），lang/theme 断言 SSR 属性透传链。
+		const options = resolveCommentOptions(commentConfig);
+		const giscusOptions =
+			options?.provider === "giscus" ? options.giscus : null;
+		if (!giscusOptions) return;
+		const widgetUrl = new URL(
+			(await iframe.getAttribute("src")) ?? "",
+			"https://giscus.app",
+		);
+		expect(widgetUrl.searchParams.get("repo")).toBe(giscusOptions.repo);
+		expect(widgetUrl.searchParams.get("repoId")).toBe(giscusOptions.repoId);
+		expect(widgetUrl.searchParams.get("categoryId")).toBe(
+			giscusOptions.categoryId,
+		);
+		expect(widgetUrl.searchParams.get("mapping")).toBe(giscusOptions.mapping);
+		if (giscusOptions.category) {
+			expect(widgetUrl.searchParams.get("category")).toBe(
+				giscusOptions.category,
+			);
+		}
+		expect(widgetUrl.searchParams.get("lang")).toBe(
+			await wrapper.getAttribute("data-giscus-lang"),
+		);
+		expect(widgetUrl.searchParams.get("theme")).toBe(
+			await wrapper.getAttribute("data-giscus-theme-light"),
+		);
+	});
+
+	test("giscus iframe shell declares both color schemes under a dark browser preference", async ({
+		page,
+	}) => {
+		test.skip(
+			!giscusUiEnabled,
+			"评论未启用或 provider 非 giscus，跳过 giscus UI 测试",
+		);
+		await mockGiscus(page);
+		// 站点亮色 + 浏览器偏好暗色：外壳若只声明 light，Chromium 会给 iframe
+		// 强制铺上不透明深色画布，评论区出现黑底（Shirone#80）。
+		await page.emulateMedia({ colorScheme: "dark" });
+		await page.goto("/posts/guide/");
+		await page.locator("#comments").scrollIntoViewIfNeeded();
+
+		const iframe = page.locator(".shirone-giscus-wrapper iframe.giscus-frame");
+		await expect(iframe).toHaveCount(1);
+		await expect
+			.poll(() =>
+				iframe.evaluate((element) => getComputedStyle(element).colorScheme),
+			)
+			.toBe("light dark");
+	});
+
+	test("giscus iframe theme follows site dark mode toggle", async ({
+		page,
+	}) => {
+		test.skip(
+			!giscusUiEnabled,
+			"评论未启用或 provider 非 giscus，跳过 giscus UI 测试",
+		);
+		await mockGiscus(page);
+		await page.goto("/posts/guide/");
+		await page.locator("#comments").scrollIntoViewIfNeeded();
+
+		const wrapper = page.locator(".shirone-giscus-wrapper");
+		const iframe = wrapper.locator("iframe.giscus-frame");
+		await expect(iframe).toHaveCount(1);
+
+		// 切换暗色：applyThemeToDocument 派发 shirone:theme-change，
+		// 组件向 iframe contentWindow 转发 giscus setConfig。
+		await page.evaluate(() => {
+			const state = window as Window & { __themeMessages?: unknown[] };
+			// 命名常量：测试内一次性挂载 message 收集器（well-known window 扩展）
+			const messages: unknown[] = [];
+			state.__themeMessages = messages;
+			window.addEventListener("message", (event) => {
+				messages.push(event.data);
+			});
+			document.documentElement.classList.add("dark");
+			window.dispatchEvent(
+				new CustomEvent("shirone:theme-change", {
+					detail: { isDark: true },
+				}),
+			);
+		});
+
+		// widget 页面回显 postMessage 为异步到达，轮询收集器直至出现 giscus setConfig
+		let setConfig: unknown;
+		await expect
+			.poll(async () => {
+				const forwarded = await page.evaluate(() => {
+					const state = window as Window & { __themeMessages?: unknown[] };
+					return state.__themeMessages ?? [];
+				});
+				setConfig = forwarded.find((message) => {
+					if (typeof message !== "object" || message === null) return false;
+					if (!("giscus" in message)) return false;
+					const giscus: unknown = message.giscus;
+					if (typeof giscus !== "object" || giscus === null) return false;
+					return "setConfig" in giscus && typeof giscus.setConfig === "object";
+				});
+				return setConfig;
+			})
+			.toBeDefined();
+	});
+
+	test("giscus remounts into fresh wrapper after Swup navigation", async ({
+		page,
+	}) => {
+		test.skip(
+			!giscusUiEnabled,
+			"评论未启用或 provider 非 giscus，跳过 giscus UI 测试",
+		);
+		await mockGiscus(page);
+		await page.goto("/posts/guide/");
+		await page.locator("#comments").scrollIntoViewIfNeeded();
+		await expect(
+			page.locator(".shirone-giscus-wrapper iframe.giscus-frame"),
+		).toHaveCount(1);
+
+		// 站内 Swup 导航离开再返回：新 wrapper 应重新挂载（client.js 一次性 IIFE，
+		// 不能依赖 loadScriptOnce 的去重缓存）
+		await page.goto("/", { waitUntil: "networkidle" });
+		await page.goBack();
+		await page.locator("#comments").scrollIntoViewIfNeeded();
+		await expect(
+			page.locator(".shirone-giscus-wrapper iframe.giscus-frame"),
+		).toHaveCount(1);
 	});
 });

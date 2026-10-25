@@ -91,6 +91,22 @@ export const es: Translation = {
 	[Key.devicesViewSpecs]: "Ver detalles",
 	[Key.devicesFeatured]: "Destacado",
 
+	[Key.games]: "Juegos",
+	[Key.gamesBanner]:
+		"Los juegos que juego — arte de portada, valoraciones, horas y reseñas breves.",
+	[Key.gamesCounts]: "juegos",
+	[Key.gamesNoResults]: "Ningún juego coincide con tus filtros",
+	[Key.gamesSearchPlaceholder]: "Buscar por título, desarrollador o género...",
+	[Key.gamesCategoryLabel]: "Categorías de juegos",
+	[Key.gamesStatusPlaying]: "Jugando",
+	[Key.gamesStatusCompleted]: "Completado",
+	[Key.gamesStatusBacklog]: "Pendiente",
+	[Key.gamesStatusWishlist]: "Lista de deseos",
+	[Key.gamesViewDetails]: "Página de la tienda",
+	[Key.gamesFeatured]: "Destacado",
+	[Key.gamesHours]: "h",
+	[Key.gamesRating]: "Valoración",
+
 	[Key.timeline]: "Línea de tiempo",
 	[Key.timelineBanner]:
 		"Trayectoria de crecimiento, hitos y momentos memorables.",
@@ -138,6 +154,16 @@ export const es: Translation = {
 
 	[Key.tags]: "Etiquetas",
 	[Key.categories]: "Categorías",
+	[Key.series]: "Series",
+	[Key.seriesCount]: "serie",
+	[Key.seriesCounts]: "series",
+	[Key.seriesStatusOngoing]: "En curso",
+	[Key.seriesStatusCompleted]: "Completado",
+	[Key.seriesPartOf]: "Esta publicación es parte de la serie",
+	[Key.seriesPart]: "Parte {index} de {total}",
+	[Key.seriesPrevInSeries]: "Anterior en la serie",
+	[Key.seriesNextInSeries]: "Siguiente en la serie",
+	[Key.seriesViewAll]: "Ver todas las series",
 	[Key.recentPosts]: "Publicaciones recientes",
 	[Key.tableOfContents]: "Tabla de contenidos",
 	[Key.formulaScrollable]: "Fórmula con desplazamiento horizontal",
@@ -152,6 +178,7 @@ export const es: Translation = {
 	[Key.announcementClose]: "Cerrar anuncio",
 
 	[Key.comments]: "Comentarios",
+	[Key.commentsEditor]: "Contenido del comentario",
 	[Key.commentsLoading]: "Cargando comentarios...",
 	[Key.commentsLoadFailed]: "Error al cargar comentarios",
 	[Key.commentsRequiresJavaScript]:
@@ -214,6 +241,7 @@ export const es: Translation = {
 	[Key.musicHidePlaylist]: "Ocultar lista de reproducción",
 	[Key.musicEmpty]: "No hay pistas en la lista de reproducción",
 	[Key.musicLoading]: "Cargando música...",
+	[Key.musicNotRequested]: "Aún no solicitado",
 	[Key.musicNowPlaying]: "Reproduciendo ahora: {title}",
 	[Key.musicErrorEmptyPlaylist]: "La lista de reproducción está vacía.",
 	[Key.musicErrorSourceUnavailable]: "Esta pista no está disponible.",
@@ -221,7 +249,7 @@ export const es: Translation = {
 		"La reproducción automática está bloqueada. Pulsa reproducir para comenzar.",
 	[Key.musicErrorInvalidTrack]: "Esta pista no es válida.",
 
-	[Key.themeColor]: "Theme Color",
+	[Key.themeColor]: "Color del tema",
 	[Key.colorStyle]: "Estilo de color",
 	[Key.colorSpec]: "Especificación",
 
@@ -282,6 +310,10 @@ export const es: Translation = {
 	[Key.retry]: "Reintentar",
 	[Key.backToTop]: "Volver arriba",
 	[Key.backToComment]: "Ir a los comentarios",
+	[Key.notFound]: "404",
+	[Key.notFoundTitle]: "Esta página se perdió en el camino",
+	[Key.notFoundDescription]:
+		"Quizá fue movida, archivada o nunca llegó a existir.",
 	[Key.backToHome]: "Volver al inicio",
 	[Key.close]: "Cerrar",
 	[Key.scanToRead]: "Escanear para leer el artículo",

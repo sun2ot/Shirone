@@ -137,7 +137,7 @@ const showCover = $derived(Boolean(project.cover) && !coverFailed);
 				{/if}
 				{#if project.repository}
 					<a href={project.repository} target="_blank" rel="noopener noreferrer">
-						<Icon icon="fa6-brands:github" aria-hidden="true" />
+						<Icon icon="fa7-brands:github" aria-hidden="true" />
 						{i18n(I18nKey.projectSource)}
 					</a>
 				{/if}
@@ -241,9 +241,9 @@ const showCover = $derived(Boolean(project.cover) && !coverFailed);
 		display: flex
 		flex-direction: column
 		flex: 1
-		gap: 0.75rem
+		gap: var(--m3e-space-3)
 		min-width: 0
-		padding: 1rem 1.125rem
+		padding: var(--m3e-space-4) var(--m3e-space-4)
 
 	&__header
 		display: flex

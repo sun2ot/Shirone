@@ -64,6 +64,8 @@ let dark = $state(
 );
 
 let motionReduced = $state(false);
+// 九宫格色卡在面板首次打开前不计算（9 次配色解算只在用户真正查看时发生）
+let panelOpened = $state(false);
 
 // 文章列表布局（list/grid）：初始值取访客偏好，变化时存储 + FLIP 重排
 const defaultLayoutMode = defaultMode();
@@ -127,7 +129,23 @@ onMount(() => {
 		attributeFilter: ["class"],
 	});
 	motionReduced = getMotionPreference();
-	return () => observer.disconnect();
+	const panel = document.getElementById("display-setting");
+	const panelObserver = new MutationObserver(() => {
+		if (panel?.classList.contains("float-panel-closed")) return;
+		panelOpened = true;
+		panelObserver.disconnect();
+	});
+	if (panel && !panel.classList.contains("float-panel-closed"))
+		panelOpened = true;
+	else if (panel)
+		panelObserver.observe(panel, {
+			attributes: true,
+			attributeFilter: ["class"],
+		});
+	return () => {
+		observer.disconnect();
+		panelObserver.disconnect();
+	};
 });
 
 /** 完整重置：色相 / 配色风格 / Color Spec / 列表布局 / 背景纹理 全部还原为站点默认（点击即生效，无确认弹窗） */
@@ -226,19 +244,21 @@ function styleColors(s: McStyle, h: number, d: boolean, sp: McSpec) {
 }
 
 /** 当前主色（标题右侧预览圆点） */
-const currentColor = $derived(styleColors(style, hue, dark, spec).primary);
+const currentColor = $derived(
+	panelOpened ? styleColors(style, hue, dark, spec).primary : "transparent",
+);
 
 /** 9 个风格的色卡预览（3×3 网格） */
 const stylePreviews = $derived(
 	MC_STYLES.map((s) => ({
 		style: s,
 		label: i18n(styleKey(s)),
-		colors: styleColors(s, hue, dark, spec),
+		colors: panelOpened ? styleColors(s, hue, dark, spec) : null,
 	})),
 );
 </script>
 
-<div id="display-setting" class="float-panel float-panel-closed absolute transition-all w-80 {className}">
+<div id="display-setting" class="float-panel float-panel-closed absolute transition-all w-80 max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain m3-scroll-contain {className}">
     <PanelStack>
         <!-- 段一：主题配色（色相 + 风格九宫格 + Color Spec） -->
         <div class="p-4 flex flex-col gap-3">
@@ -248,7 +268,7 @@ const stylePreviews = $derived(
                     {i18n(I18nKey.themeColor)}
                     <button aria-label="Reset to Default" class="float-control w-7 h-7 rounded-md active:scale-90 will-change-transform flex items-center justify-center"
                             class:opacity-0={!isDirty} class:pointer-events-none={!isDirty} onclick={confirmReset}>
-                        <Icon icon="fa6-solid:arrow-rotate-left" class="text-[0.875rem]"></Icon>
+                        <Icon icon="fa7-solid:arrow-rotate-left" class="text-[0.875rem]"></Icon>
                     </button>
                 </div>
                 <div class="flex gap-1 items-center">
@@ -281,9 +301,9 @@ const stylePreviews = $derived(
                                 onclick={() => (style = p.style)}
                             >
                                 <span class="m3-style-cell__dots">
-                                    <span class="m3-style-cell__dot" style={`background: ${p.colors.primary}`}></span>
-                                    <span class="m3-style-cell__dot" style={`background: ${p.colors.secondary}`}></span>
-                                    <span class="m3-style-cell__dot" style={`background: ${p.colors.tertiary}`}></span>
+                                    <span class="m3-style-cell__dot" style={p.colors && `background: ${p.colors.primary}`}></span>
+                                    <span class="m3-style-cell__dot" style={p.colors && `background: ${p.colors.secondary}`}></span>
+                                    <span class="m3-style-cell__dot" style={p.colors && `background: ${p.colors.tertiary}`}></span>
                                 </span>
                                 <span class="m3-style-cell__name">{p.label}</span>
                             </button>
@@ -294,7 +314,7 @@ const stylePreviews = $derived(
 
             {#if displayConfig.colorSpec}
                 <div class="flex flex-col gap-1.5 pt-1">
-                    <span class="text-sm font-bold text-[var(--on-surface-variant)] ml-1">{i18n(I18nKey.colorSpec)}</span>
+                    <span class="display-settings__section-label">{i18n(I18nKey.colorSpec)}</span>
                     <SegmentedButton
                         options={MC_SPECS.map((s) => ({
                             value: s,
@@ -312,7 +332,7 @@ const stylePreviews = $derived(
             <div class="p-4 flex flex-col gap-3">
                 {#if displayConfig.wallpaperMode}
                     <div class="flex flex-col gap-1.5">
-                        <span class="text-sm font-bold text-[var(--on-surface-variant)] ml-1">{i18n(I18nKey.wallpaperMode)}</span>
+                        <span class="display-settings__section-label">{i18n(I18nKey.wallpaperMode)}</span>
                         <SegmentedButton
                             options={[
                                 { value: "none", label: i18n(I18nKey.wallpaperModeNone) },
@@ -326,7 +346,7 @@ const stylePreviews = $derived(
 
                 {#if displayConfig.layoutMode}
                     <div class="flex flex-col gap-1.5">
-                        <span class="text-sm font-bold text-[var(--on-surface-variant)] ml-1">{i18n(I18nKey.layoutMode)}</span>
+                        <span class="display-settings__section-label">{i18n(I18nKey.layoutMode)}</span>
                         <SegmentedButton
                             options={[
                                 { value: "list", label: i18n(I18nKey.layoutList) },
@@ -340,7 +360,7 @@ const stylePreviews = $derived(
 
                 {#if displayConfig.texture}
                     <div class="flex flex-col gap-2 pt-1">
-                        <span class="text-sm font-bold text-[var(--on-surface-variant)] ml-1">{i18n(I18nKey.texturePreset)}</span>
+                        <span class="display-settings__section-label">{i18n(I18nKey.texturePreset)}</span>
                         <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label={i18n(I18nKey.texturePreset)}>
                             {#each textureOptions as opt (opt.value)}
                                 <button
@@ -378,25 +398,34 @@ const stylePreviews = $derived(
 
 
 <style lang="stylus">
+    .display-settings__section-label
+        font: var(--m3e-type-label-large)
+        font-weight: 700
+        color: var(--on-surface-variant)
+        margin-left: var(--m3e-space-1)
+
     .m3-style-cell
         display: flex
         flex-direction: column
         align-items: center
         justify-content: center
-        gap: 0.375rem
-        padding: 0.5rem 0.25rem
+        gap: var(--m3e-space-1)
+        padding: var(--m3e-space-2) var(--m3e-space-1)
         border: none
-        border-radius: var(--shape-corner-s)
+        border-radius: var(--shape-corner-m)
         background: transparent
         color: var(--on-surface-variant)
         font: var(--m3e-type-label-small)
         cursor: pointer
         user-select: none
+        --m3e-state-color: var(--on-surface)
         transition: background-color var(--m3e-duration-short) var(--m3e-easing-standard), color var(--m3e-duration-short) var(--m3e-easing-standard)
         &:hover
-            background: unquote("color-mix(in oklab, var(--on-surface) 6%, transparent)")
+            background: unquote("color-mix(in oklab, var(--on-surface) 8%, transparent)")
         &.selected
             background: var(--secondary-container)
+            color: var(--on-secondary-container)
+            font-weight: 600
             color: var(--on-secondary-container)
 
         &__dots
@@ -415,4 +444,19 @@ const stylePreviews = $derived(
             text-overflow: ellipsis
             white-space: nowrap
 
+    :global(#display-setting.m3-scroll-contain)
+        scrollbar-width: thin
+        scrollbar-color: var(--scrollbar-bg) transparent
+        -webkit-overflow-scrolling: touch
+        &::-webkit-scrollbar
+            width: 0.375rem
+        &::-webkit-scrollbar-track
+            background: transparent
+        &::-webkit-scrollbar-thumb
+            background: var(--scrollbar-bg)
+            border-radius: var(--shape-corner-full)
+            &:hover
+                background: var(--scrollbar-bg-hover)
+            &:active
+                background: var(--scrollbar-bg-active)
 </style>
